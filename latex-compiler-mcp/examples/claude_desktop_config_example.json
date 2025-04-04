@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "latex": {
+      "command": "python",
+      "args": ["-m", "latex_compiler_mcp"],
+      "env": {}
+    }
+  }
+}
