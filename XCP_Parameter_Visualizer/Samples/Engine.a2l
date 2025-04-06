@@ -1,0 +1,253 @@
+/begin PROJECT Engine_Control
+    /begin HEADER
+        "ECU Measurement and Calibration Data"
+        VERSION "1.0"
+    /end HEADER
+    
+    /begin MODULE Engine_ECU
+        /begin A2ML
+            /* A2ML description for custom data types */
+        /end A2ML
+        
+        /begin MOD_PAR
+            "Engine Control Unit Parameters"
+            VERSION "1.0.0"
+            /begin MEMORY_SEGMENT
+                FLASH
+                "Flash Memory Segment"
+                DATA
+                FLASH
+                0x00000000
+                0x00100000
+                -1 -1 -1 -1 -1
+            /end MEMORY_SEGMENT
+        /end MOD_PAR
+        
+        /begin MOD_COMMON
+            "Common Module Parameters"
+            S_REC_LAYOUT S_RECORD
+            ALIGNMENT_BYTE 1
+            ALIGNMENT_WORD 2
+            ALIGNMENT_LONG 4
+            ALIGNMENT_FLOAT32_IEEE 4
+            ALIGNMENT_FLOAT64_IEEE 8
+        /end MOD_COMMON
+        
+        /* Measurement definitions */
+        /begin MEASUREMENT EngineSpeed
+            "Engine RPM"
+            UBYTE
+            NO_COMPU_METHOD
+            0
+            8000
+            0
+            INTERN
+            1
+            1
+            0
+            0
+            ADDR_EPK 0x01020304
+            DATATYPE UINT16
+            UNIT "RPM"
+            /begin IF_DATA XCP
+                ADDR 0x01020304
+                ADDREXT 0
+                SIZE 2
+            /end IF_DATA
+        /end MEASUREMENT
+        
+        /begin MEASUREMENT ThrottlePosition
+            "Throttle Position Percentage"
+            UBYTE
+            COMPU_METHOD ThrottleConversion
+            0
+            100
+            0
+            INTERN
+            1
+            1
+            0
+            0
+            ADDR_EPK 0x01020308
+            DATATYPE UINT8
+            UNIT "%"
+            /begin IF_DATA XCP
+                ADDR 0x01020308
+                ADDREXT 0
+                SIZE 1
+            /end IF_DATA
+        /end MEASUREMENT
+        
+        /begin MEASUREMENT EngineTemp
+            "Engine Temperature"
+            UBYTE
+            COMPU_METHOD TempConversion
+            -40
+            215
+            0
+            INTERN
+            1
+            1
+            0
+            0
+            ADDR_EPK 0x01020310
+            DATATYPE INT16
+            UNIT "°C"
+            /begin IF_DATA XCP
+                ADDR 0x01020310
+                ADDREXT 0
+                SIZE 2
+            /end IF_DATA
+        /end MEASUREMENT
+        
+        /begin MEASUREMENT ManifoldPressure
+            "Intake Manifold Pressure"
+            UBYTE
+            COMPU_METHOD PressureConversion
+            0
+            300
+            0
+            INTERN
+            1
+            1
+            0
+            0
+            ADDR_EPK 0x01020314
+            DATATYPE UINT16
+            UNIT "kPa"
+            /begin IF_DATA XCP
+                ADDR 0x01020314
+                ADDREXT 0
+                SIZE 2
+            /end IF_DATA
+        /end MEASUREMENT
+        
+        /begin MEASUREMENT AirFuelRatio
+            "Air-Fuel Ratio"
+            UBYTE
+            COMPU_METHOD AFRConversion
+            10
+            20
+            0
+            INTERN
+            1
+            1
+            0
+            0
+            ADDR_EPK 0x01020318
+            DATATYPE UINT16
+            UNIT ":1"
+            /begin IF_DATA XCP
+                ADDR 0x01020318
+                ADDREXT 0
+                SIZE 2
+            /end IF_DATA
+        /end MEASUREMENT
+        
+        /* Computation Methods */
+        /begin COMPU_METHOD ThrottleConversion
+            "Throttle Position Conversion Method"
+            RAT_FUNC
+            "%"
+            "-"
+            COMPU_RATIONAL_COEFFS
+            0
+            1
+            0
+            0.392157
+            0
+            0
+        /end COMPU_METHOD
+        
+        /begin COMPU_METHOD TempConversion
+            "Temperature Conversion Method"
+            RAT_FUNC
+            "°C"
+            "-"
+            COMPU_RATIONAL_COEFFS
+            0
+            1
+            0
+            0.01
+            0
+            0
+        /end COMPU_METHOD
+        
+        /begin COMPU_METHOD PressureConversion
+            "Pressure Conversion Method"
+            RAT_FUNC
+            "kPa"
+            "-"
+            COMPU_RATIONAL_COEFFS
+            0
+            1
+            0
+            0.1
+            0
+            0
+        /end COMPU_METHOD
+        
+        /begin COMPU_METHOD AFRConversion
+            "Air-Fuel Ratio Conversion Method"
+            RAT_FUNC
+            ":1"
+            "-"
+            COMPU_RATIONAL_COEFFS
+            0
+            1
+            0
+            0.001
+            0
+            0
+        /end COMPU_METHOD
+        
+        /* Characteristic Definitions */
+        /begin CHARACTERISTIC FuelInjectionBase
+            "Base Fuel Injection Time"
+            VALUE
+            0x02030404
+            DEPOSIT ABSOLUTE
+            0.0
+            25.0
+            0.01
+            INTERN
+            1
+            1
+            0
+            0
+            ADDR_EPK 0x02030404
+            TYPE FLOAT32
+            UNIT "ms"
+            /begin IF_DATA XCP
+                ADDR 0x02030404
+                ADDREXT 0
+                SIZE 4
+            /end IF_DATA
+        /end CHARACTERISTIC
+        
+        /begin CHARACTERISTIC IgnitionTimingMap
+            "Ignition Timing Map"
+            MAP
+            0x02040000
+            DEPOSIT ABSOLUTE
+            -20.0
+            60.0
+            0.5
+            INTERN
+            1
+            1
+            0
+            0
+            ADDR_EPK 0x02040000
+            TYPE FLOAT32
+            UNIT "°"
+            NUMBER_X_POINTS 16
+            NUMBER_Y_POINTS 16
+            /begin IF_DATA XCP
+                ADDR 0x02040000
+                ADDREXT 0
+                SIZE 1024
+            /end IF_DATA
+        /end CHARACTERISTIC
+    /end MODULE
+/end PROJECT
