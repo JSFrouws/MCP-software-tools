@@ -1,0 +1,10 @@
+{
+    "mcpServers": {
+        "terminal": {
+            "command": "C:/Users/-/Documents/code/MCP-Github/terminal-mcp/.venv/Scripts/python.exe",
+            "args": [
+                "C:/Users/-/Documents/code/MCP-Github/terminal-mcp/terminal_server.py"
+            ]
+        }
+    }
+}

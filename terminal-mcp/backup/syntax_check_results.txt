@@ -1,0 +1,3 @@
+=== Checking syntax for terminal_server.py ===
+Read 32001 characters from terminal_server.py
+Successfully tokenized the file with 4553 tokens
