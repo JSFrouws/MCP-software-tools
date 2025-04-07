@@ -21,14 +21,35 @@ Currently implemented tools:
 
 ## Installation
 
+### Automatic Setup (Windows)
+
+1. Run the included setup script:
+   ```
+   setup_and_run.bat
+   ```
+
+2. To both setup and run the server in one step:
+   ```
+   setup_and_run.bat run
+   ```
+
+### Manual Setup
+
 1. Clone this repository
-2. Install dependencies:
+2. Create and activate a virtual environment using uv:
    ```
-   pip install -r requirements.txt
+   uv venv
+   .venv\Scripts\activate  # On Windows
+   source .venv/bin/activate  # On Linux/Mac
    ```
-3. Copy `.env.example` to `.env` and customize as needed:
+3. Install dependencies:
    ```
-   cp .env.example .env
+   uv pip install -r requirements.txt
+   ```
+4. Copy `.env.example` to `.env` and customize as needed:
+   ```
+   copy .env.example .env  # On Windows
+   cp .env.example .env  # On Linux/Mac
    ```
 
 ## Usage with Claude Desktop

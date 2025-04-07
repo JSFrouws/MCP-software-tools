@@ -21,7 +21,7 @@ setup(
     python_requires=">=3.7",
     entry_points={
         "console_scripts": [
-            "latex-compiler-mcp=latex_compiler_mcp:mcp.run",
+            "latex-compiler-mcp=latex_compiler.cli:main",
         ],
     },
     classifiers=[

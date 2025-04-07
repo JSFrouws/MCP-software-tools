@@ -1,134 +1,17 @@
 """
-MCP Server for LaTeX Compilation
-Provides tools to compile LaTeX documents and process the results
+LaTeX compilation functions and utilities
 """
 
 import os
-import re
 import subprocess
-import tempfile
-from pathlib import Path
-from typing import List, Dict, Any, Optional, Tuple, Union
 import logging
-import shutil
-import base64
+from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
 
-from mcp.server.fastmcp import FastMCP, Context, Image
-from pdf2image import convert_from_path
+from .error_parser import parse_latex_log
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
 logger = logging.getLogger("latex-compiler-mcp")
-
-# Initialize FastMCP server
-mcp = FastMCP(
-    "LaTeXCompiler",
-    dependencies=["mcp", "pdf2image", "poppler-utils"]
-)
-
-# Regex patterns for parsing LaTeX errors
-ERROR_PATTERNS = {
-    'basic_error': re.compile(r'! (.+?)\.(\n|$)'),
-    'line_error': re.compile(r'l\.(\d+)'),
-    'file_error': re.compile(r'([^()\s]+\.[^()\s]+):(\d+): (.+)'),
-    'undefined_reference': re.compile(r'LaTeX Warning: Reference `([^\']+)\' on page \d+ undefined'),
-    'undefined_citation': re.compile(r'LaTeX Warning: Citation `([^\']+)\' on page \d+ undefined'),
-    'missing_package': re.compile(r'! LaTeX Error: File `([^\']+)\.sty\' not found'),
-}
-
-def parse_latex_log(log_text: str) -> List[Dict[str, Any]]:
-    """Parse LaTeX log output to extract errors and warnings"""
-    errors = []
-    
-    # Split log by lines
-    lines = log_text.split('\n')
-    
-    # Track the current file being processed
-    current_file = None
-    
-    i = 0
-    while i < len(lines):
-        line = lines[i]
-        
-        # Check for file changes
-        if line.startswith('(') and '.tex' in line:
-            # Extract the filename
-            file_match = re.search(r'\(([^()]+\.tex)', line)
-            if file_match:
-                current_file = file_match.group(1)
-        
-        # Check for basic errors
-        error_match = ERROR_PATTERNS['basic_error'].search(line)
-        if error_match:
-            error_msg = error_match.group(1).strip()
-            error_data = {
-                'type': 'error',
-                'message': error_msg,
-                'file': current_file
-            }
-            
-            # Look for line number in the next few lines
-            for j in range(i, min(i + 5, len(lines))):
-                line_match = ERROR_PATTERNS['line_error'].search(lines[j])
-                if line_match:
-                    error_data['line'] = int(line_match.group(1))
-                    break
-            
-            # Add context lines
-            context_start = max(0, i - 2)
-            context_end = min(len(lines), i + 3)
-            error_data['context'] = '\n'.join(lines[context_start:context_end])
-            
-            errors.append(error_data)
-        
-        # Check for file-specific errors
-        file_error_match = ERROR_PATTERNS['file_error'].search(line)
-        if file_error_match:
-            errors.append({
-                'type': 'error',
-                'file': file_error_match.group(1),
-                'line': int(file_error_match.group(2)),
-                'message': file_error_match.group(3),
-                'context': line
-            })
-        
-        # Check for undefined references
-        ref_match = ERROR_PATTERNS['undefined_reference'].search(line)
-        if ref_match:
-            errors.append({
-                'type': 'warning',
-                'message': f"Undefined reference: {ref_match.group(1)}",
-                'ref': ref_match.group(1),
-                'file': current_file
-            })
-        
-        # Check for undefined citations
-        cite_match = ERROR_PATTERNS['undefined_citation'].search(line)
-        if cite_match:
-            errors.append({
-                'type': 'warning',
-                'message': f"Undefined citation: {cite_match.group(1)}",
-                'citation': cite_match.group(1),
-                'file': current_file
-            })
-        
-        # Check for missing packages
-        pkg_match = ERROR_PATTERNS['missing_package'].search(line)
-        if pkg_match:
-            errors.append({
-                'type': 'error',
-                'message': f"Missing package: {pkg_match.group(1)}",
-                'package': pkg_match.group(1),
-                'file': current_file
-            })
-        
-        i += 1
-    
-    return errors
 
 def run_pdflatex(file_path: str, output_dir: Optional[str] = None, 
                  options: Optional[List[str]] = None) -> Tuple[bool, str, str]:
@@ -207,7 +90,6 @@ def run_pdflatex(file_path: str, output_dir: Optional[str] = None,
         logger.error(f"Error running pdflatex: {str(e)}")
         return False, "", str(e)
 
-@mcp.tool()
 def compile_latex(file_path: str, output_dir: Optional[str] = None, 
                  runs: int = 1, clean: bool = False) -> str:
     """
@@ -309,78 +191,6 @@ def compile_latex(file_path: str, output_dir: Optional[str] = None,
     
     return result
 
-@mcp.resource("latex://{file_path}/pdf/{page}")
-def get_pdf_page(file_path: str, page: str) -> Image:
-    """
-    Get a specific page from the compiled PDF as an image
-    
-    Args:
-        file_path: Path to the .tex file
-        page: Page number or 'all' for first page
-    """
-    # Normalize path
-    file_path = os.path.abspath(file_path)
-    
-    # Get the PDF path
-    output_dir = os.path.dirname(file_path)
-    base_name = os.path.splitext(os.path.basename(file_path))[0]
-    pdf_path = os.path.join(output_dir, f"{base_name}.pdf")
-    
-    # Check if the PDF exists
-    if not os.path.exists(pdf_path):
-        raise ValueError(f"PDF not found: {pdf_path}. Run compile_latex tool first.")
-    
-    # Determine which page to convert
-    page_num = 0 if page == 'all' else int(page) - 1
-    
-    # Convert the page to an image
-    try:
-        images = convert_from_path(pdf_path, first_page=page_num+1, last_page=page_num+1)
-        
-        if not images:
-            raise ValueError(f"Page {page} not found in PDF")
-        
-        # Convert to bytes
-        import io
-        img_byte_arr = io.BytesIO()
-        images[0].save(img_byte_arr, format='PNG')
-        
-        return Image(data=img_byte_arr.getvalue(), format="png")
-    except Exception as e:
-        logger.error(f"Error converting PDF page to image: {str(e)}")
-        raise ValueError(f"Error converting PDF page to image: {str(e)}")
-
-@mcp.tool()
-def get_pdf_base64(file_path: str) -> str:
-    """
-    Get the compiled PDF as a base64 encoded string
-    
-    Args:
-        file_path: Path to the .tex file
-    """
-    # Normalize path
-    file_path = os.path.abspath(file_path)
-    
-    # Get the PDF path
-    output_dir = os.path.dirname(file_path)
-    base_name = os.path.splitext(os.path.basename(file_path))[0]
-    pdf_path = os.path.join(output_dir, f"{base_name}.pdf")
-    
-    # Check if the PDF exists
-    if not os.path.exists(pdf_path):
-        return f"Error: PDF not found: {pdf_path}. Run compile_latex tool first."
-    
-    # Encode the PDF
-    try:
-        with open(pdf_path, 'rb') as pdf_file:
-            encoded_pdf = base64.b64encode(pdf_file.read()).decode('utf-8')
-        
-        return encoded_pdf
-    except Exception as e:
-        logger.error(f"Error encoding PDF: {str(e)}")
-        return f"Error encoding PDF: {str(e)}"
-
-@mcp.tool()
 def get_log_file(file_path: str) -> str:
     """
     Get the LaTeX compilation log file
@@ -409,7 +219,3 @@ def get_log_file(file_path: str) -> str:
     except Exception as e:
         logger.error(f"Error reading log file: {str(e)}")
         return f"Error reading log file: {str(e)}"
-
-# Run the server if executed directly
-if __name__ == "__main__":
-    mcp.run()

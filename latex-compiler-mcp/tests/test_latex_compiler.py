@@ -1,14 +1,16 @@
 import os
 import sys
 import tempfile
+import shutil
 import pytest
 from pathlib import Path
 
 # Add the parent directory to the path so we can import the module
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# Import functions to test
-from latex_compiler_mcp import parse_latex_log, run_pdflatex
+# Import the modules to test
+from latex_compiler.error_parser import parse_latex_log
+from latex_compiler.compiler import run_pdflatex
 
 class TestLatexCompiler:
     def test_parse_latex_log(self):
@@ -64,3 +66,6 @@ Hello, world!
             # Check that it compiled successfully
             assert success
             assert os.path.exists(os.path.join(tmpdir, 'test.pdf'))
+
+if __name__ == "__main__":
+    pytest.main(["-xvs"])

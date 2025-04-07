@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "latex": {
-      "command": "python",
-      "args": ["-m", "latex_compiler_mcp"],
+      "command": ".venv\\Scripts\\latex-compiler-mcp",
+      "args": ["run"],
       "env": {}
     }
   }

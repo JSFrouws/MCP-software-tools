@@ -52,16 +52,12 @@ def load_tools():
             except Exception as e:
                 logger.error(f"Error loading module {module_name}: {e}")
 
-@mcp.lifespan()
-async def init_system():
-    """Initialize the system on startup"""
-    logger.info("Initializing Generic MCP Tool Set")
-    
-    # Load all tools
-    load_tools()
-    
-    logger.info("All tools loaded successfully")
-    return {}
+# Load tools at startup
+# Note: This directly loads tools instead of using @mcp.lifespan() which may not be
+# available in all versions of the MCP SDK (caused AttributeError)
+logger.info("Initializing Generic MCP Tool Set")
+load_tools()
+logger.info("All tools loaded successfully")
 
 if __name__ == "__main__":
     mcp.run()

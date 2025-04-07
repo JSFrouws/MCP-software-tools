@@ -1,1 +1,5 @@
-# LaTeX Compiler MCP package
+"""
+LaTeX Compiler MCP package
+"""
+
+from latex_compiler import mcp
